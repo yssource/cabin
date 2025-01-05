@@ -151,7 +151,6 @@ jobs:
         env:
           CABIN_BIN: ${{ github.workspace }}/cabin-out/debug/cabin
 
-
       # - name: Print coverage
       #   if: success() && matrix.coverage == 'on'
       #   run: |
