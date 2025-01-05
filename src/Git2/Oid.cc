@@ -3,6 +3,7 @@
 #include "Exception.hpp"
 
 #include <cstring>
+#include <git2/deprecated.h>
 #include <git2/oid.h>
 #include <ostream>
 #include <string>
@@ -23,16 +24,8 @@ Oid::Oid(const std::string_view str) {
 
 bool
 Oid::isZero() const {
-#if (LIBGIT2_VER_MAJOR < 1) && (LIBGIT2_VER_MINOR < 99)
   return git_oid_iszero(raw) == 1;
-#else
-  return git_oid_is_zero(raw) == 1;
-#endif
 }
-
-#if !defined(GIT_OID_MAX_HEXSIZE) && defined(GIT_OID_HEXSZ)
-#  define GIT_OID_MAX_HEXSIZE GIT_OID_HEXSZ
-#endif
 
 std::string
 Oid::toString() const {

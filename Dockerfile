@@ -1,4 +1,4 @@
-ARG base=debian:bookworm-20240812-slim
+ARG base=ubuntu:24.04
 
 
 FROM $base AS builder
