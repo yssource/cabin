@@ -95,8 +95,8 @@ private:
 };
 
 struct DepMetadata {
-  std::string includes;  // -Isomething
-  std::string libs;      // -Lsomething -lsomething
+  const std::string includes;  // -Isomething
+  const std::string libs;      // -Lsomething -lsomething
 };
 
 struct GitDependency {
