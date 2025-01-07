@@ -137,7 +137,7 @@ struct Manifest {
       bool findRecursive = true
   ) noexcept;
   static Result<Manifest>
-  tryParse(const toml::value& data, fs::path path = "unknown") noexcept;
+  tryFromToml(const toml::value& data, fs::path path = "unknown") noexcept;
 
 private:
   Manifest(

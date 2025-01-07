@@ -438,11 +438,11 @@ Manifest::tryParse(fs::path path, const bool findRecursive) noexcept {
   if (findRecursive) {
     path = Try(findManifest(path.parent_path()));
   }
-  return Manifest::tryParse(toml::parse(path), path);
+  return Manifest::tryFromToml(toml::parse(path), path);
 }
 
 Result<Manifest>
-Manifest::tryParse(const toml::value& data, fs::path path) noexcept {
+Manifest::tryFromToml(const toml::value& data, fs::path path) noexcept {
   auto package = Try(Package::tryFromToml(data));
   std::vector<Dependency> dependencies =
       Try(parseDependencies(data, "dependencies"));
