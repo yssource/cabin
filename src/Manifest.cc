@@ -504,14 +504,13 @@ installDependencies(const Manifest& manifest, const bool includeDevDeps) {
   std::vector<DepMetadata> installed;
   for (const auto& dep : manifest.dependencies) {
     std::visit(
-        [&installed](auto&& arg) { installed.emplace_back(arg.install()); }, dep
+        [&](const auto& arg) { installed.emplace_back(arg.install()); }, dep
     );
   }
   if (includeDevDeps) {
     for (const auto& dep : manifest.devDependencies) {
       std::visit(
-          [&installed](auto&& arg) { installed.emplace_back(arg.install()); },
-          dep
+          [&](const auto& arg) { installed.emplace_back(arg.install()); }, dep
       );
     }
   }
