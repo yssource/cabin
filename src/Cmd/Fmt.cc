@@ -115,14 +115,18 @@ fmtMain(const std::span<const std::string_view> args) {
     return EXIT_FAILURE;
   }
 
-  const std::string_view packageName = getPackageName();
+  const auto manifestRes = Manifest::tryParse();
+  if (manifestRes.is_err()) {
+    throw CabinError(manifestRes.unwrap_err()->what());
+  }
+  const auto& manifest = manifestRes.unwrap();
   std::vector<std::string> clangFormatArgs{
     "--style=file",
     "--fallback-style=LLVM",
     "-Werror",
   };
 
-  const fs::path projectPath = getProjectBasePath();
+  const fs::path projectPath = manifest.path.parent_path();
   const std::vector<std::string> sources =
       collectFormatTargets(projectPath, excludes);
   if (sources.empty()) {
@@ -137,7 +141,7 @@ fmtMain(const std::span<const std::string_view> args) {
     clangFormatArgs.emplace_back("--dry-run");
   } else {
     clangFormatArgs.emplace_back("-i");
-    logger::info("Formatting", "{}", packageName);
+    logger::info("Formatting", "{}", manifest.package.name);
   }
   clangFormatArgs.insert(clangFormatArgs.end(), sources.begin(), sources.end());
 

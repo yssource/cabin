@@ -5,6 +5,7 @@
 #include "../Manifest.hpp"
 
 #include <cstdlib>
+#include <fmt/std.h>
 #include <fstream>
 #include <functional>
 #include <optional>
@@ -128,7 +129,12 @@ addDependencyToManifest(
   }
 
   // Keep the order of the tables.
-  auto data = toml::parse<toml::ordered_type_config>(getManifestPath());
+  const Result<fs::path> manifestPath = findManifest();
+  if (manifestPath.is_err()) {
+    // FIXME: propagate the error down to main.cc.
+    throw CabinError(manifestPath.unwrap_err()->what());
+  }
+  auto data = toml::parse<toml::ordered_type_config>(manifestPath.unwrap());
 
   // Check if the dependencies table exists, if not create it.
   if (data["dependencies"].is_empty()) {
@@ -137,7 +143,6 @@ addDependencyToManifest(
   auto& deps = data["dependencies"];
 
   for (const auto& dep : newDeps) {
-
     if (!isSystemDependency) {
       const std::string gitUrl = getDependencyGitUrl(dep);
       const std::string depName = getDependencyName(dep);
@@ -153,7 +158,7 @@ addDependencyToManifest(
     }
   }
 
-  std::ofstream ofs(getManifestPath());
+  std::ofstream ofs(manifestPath.unwrap());
   ofs << data;
 
   logger::info("Added", "to the cabin.toml");
