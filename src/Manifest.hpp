@@ -134,7 +134,7 @@ struct Manifest {
 
   static Result<Manifest> tryParse(
       fs::path path = fs::current_path() / "cabin.toml",
-      bool findRecursive = true
+      bool findRecursively = true
   ) noexcept;
   static Result<Manifest>
   tryFromToml(const toml::value& data, fs::path path = "unknown") noexcept;

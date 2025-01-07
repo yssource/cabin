@@ -434,8 +434,8 @@ findManifest(fs::path candidate) noexcept {
 }
 
 Result<Manifest>
-Manifest::tryParse(fs::path path, const bool findRecursive) noexcept {
-  if (findRecursive) {
+Manifest::tryParse(fs::path path, const bool findRecursively) noexcept {
+  if (findRecursively) {
     path = Try(findManifest(path.parent_path()));
   }
   return Manifest::tryFromToml(toml::parse(path), path);
