@@ -119,11 +119,14 @@ mkdocs build --strict
 
 ## Commit Message
 
-We generally follow the
+Read
 [Git Contribution Guidelines](https://git-scm.com/docs/SubmittingPatches#describe-changes).
 
-- **First Line**: `component: description of the patch` in all lowercase.
-- **Body**: Explain your change in 2-3 paragraphs:
+In a nutshell:
+
+- **First Line**: `component: description of the patch` in all lowercase
+  unless it's in a cap in the code.
+- **Body**: In 2-3 paragraphs:
   1. the current problem you want to solve
   2. justification of your change
   3. if any, alternative solutions considered but discarded
