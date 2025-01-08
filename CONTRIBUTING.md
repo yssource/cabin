@@ -131,9 +131,6 @@ In a nutshell:
   2. justification of your change
   3. if any, alternative solutions considered but discarded
 
-Read [Git Contribution Guidelines](https://git-scm.com/docs/SubmittingPatches#describe-changes)
-for more examples.
-
 ## Pull Request Style
 
 1. **Title**: Follow the First Line rule of [Commit Message](#commit-message).
