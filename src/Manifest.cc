@@ -5,7 +5,7 @@
 #include "Exception.hpp"
 #include "Git2.hpp"
 #include "Logger.hpp"
-#include "Rustify.hpp"
+#include "Rustify/Result.hpp"
 #include "Semver.hpp"
 #include "TermColor.hpp"
 #include "VersionReq.hpp"
@@ -79,10 +79,8 @@ Package::tryFromToml(const toml::value& val) noexcept {
 
 static Result<std::size_t>
 validateOptLevel(const std::size_t optLevel) noexcept {
-  if (optLevel > 3) {
-    // TODO: use toml::format_error for better diagnostics.
-    Bail("opt_level must be between 0 and 3");
-  }
+  // TODO: use toml::format_error for better diagnostics.
+  Ensure(optLevel <= 3, "opt_level must be between 0 and 3");
   return Ok(optLevel);
 }
 
@@ -188,25 +186,21 @@ Lint::tryFromToml(const toml::value& val) noexcept {
   return Ok(Lint(std::move(cpplint)));
 }
 
-static void
-validateDepName(const std::string_view name) {
-  if (name.empty()) {
-    throw CabinError("dependency name is empty");
-  }
-
-  if (!std::isalnum(name.front())) {
-    throw CabinError("dependency name must start with an alphanumeric character"
-    );
-  }
-  if (!std::isalnum(name.back()) && name.back() != '+') {
-    throw CabinError(
-        "dependency name must end with an alphanumeric character or `+`"
-    );
-  }
+static Result<void>
+validateDepName(const std::string_view name) noexcept {
+  Ensure(!name.empty(), "dependency name must not be empty");
+  Ensure(
+      std::isalnum(name.front()),
+      "dependency name must start with an alphanumeric character"
+  );
+  Ensure(
+      std::isalnum(name.back()) || name.back() == '+',
+      "dependency name must end with an alphanumeric character or `+`"
+  );
 
   for (const char c : name) {
     if (!std::isalnum(c) && !ALLOWED_CHARS.contains(c)) {
-      throw CabinError(
+      Bail(
           "dependency name must be alphanumeric, `-`, `_`, `/`, "
           "`.`, or `+`"
       );
@@ -220,7 +214,7 @@ validateDepName(const std::string_view name) {
     }
 
     if (!std::isalnum(name[i]) && name[i] == name[i - 1]) {
-      throw CabinError(
+      Bail(
           "dependency name must not contain consecutive non-alphanumeric "
           "characters"
       );
@@ -232,7 +226,7 @@ validateDepName(const std::string_view name) {
     }
 
     if (!std::isdigit(name[i - 1]) || !std::isdigit(name[i + 1])) {
-      throw CabinError("dependency name must contain `.` wrapped by digits");
+      Bail("dependency name must contain `.` wrapped by digits");
     }
   }
 
@@ -241,22 +235,25 @@ validateDepName(const std::string_view name) {
     ++charsFreq[c];
   }
 
-  if (charsFreq['/'] > 1) {
-    throw CabinError("dependency name must not contain more than one `/`");
-  }
-  if (charsFreq['+'] != 0 && charsFreq['+'] != 2) {
-    throw CabinError("dependency name must contain zero or two `+`");
-  }
+  Ensure(
+      charsFreq['/'] <= 1, "dependency name must not contain more than one `/`"
+  );
+  Ensure(
+      charsFreq['+'] == 0 || charsFreq['+'] == 2,
+      "dependency name must contain zero or two `+`"
+  );
   if (charsFreq['+'] == 2) {
     if (name.find('+') + 1 != name.rfind('+')) {
-      throw CabinError("`+` in the dependency name must be consecutive");
+      Bail("`+` in the dependency name must be consecutive");
     }
   }
+
+  return Ok();
 }
 
-static GitDependency
-parseGitDep(const std::string& name, const toml::table& info) {
-  validateDepName(name);
+static Result<GitDependency>
+parseGitDep(const std::string& name, const toml::table& info) noexcept {
+  Try(validateDepName(name));
   std::string gitUrlStr;
   std::optional<std::string> target = std::nullopt;
 
@@ -275,29 +272,25 @@ parseGitDep(const std::string& name, const toml::table& info) {
       }
     }
   }
-  return { .name = name, .url = gitUrlStr, .target = target };
+  return Ok(GitDependency(name, gitUrlStr, std::move(target)));
 }
 
-static PathDependency
-parsePathDep(const std::string& name, const toml::table& info) {
-  validateDepName(name);
+static Result<PathDependency>
+parsePathDep(const std::string& name, const toml::table& info) noexcept {
+  Try(validateDepName(name));
   const auto& path = info.at("path");
-  if (!path.is_string()) {
-    throw CabinError("path dependency must be a string");
-  }
-  return { .name = name, .path = path.as_string() };
+  Ensure(path.is_string(), "path dependency must be a string");
+  return Ok(PathDependency(name, path.as_string()));
 }
 
-static SystemDependency
-parseSystemDep(const std::string& name, const toml::table& info) {
-  validateDepName(name);
+static Result<SystemDependency>
+parseSystemDep(const std::string& name, const toml::table& info) noexcept {
+  Try(validateDepName(name));
   const auto& version = info.at("version");
-  if (!version.is_string()) {
-    throw CabinError("system dependency version must be a string");
-  }
+  Ensure(version.is_string(), "system dependency version must be a string");
 
   const std::string versionReq = version.as_string();
-  return { .name = name, .versionReq = VersionReq::parse(versionReq) };
+  return Ok(SystemDependency(name, Try(VersionReq::tryParse(versionReq))));
 }
 
 static Result<std::vector<Dependency>>
@@ -313,13 +306,13 @@ parseDependencies(const toml::value& val, const char* key) noexcept {
     if (dep.second.is_table()) {
       const auto& info = dep.second.as_table();
       if (info.contains("git")) {
-        deps.emplace_back(parseGitDep(dep.first, info));
+        deps.emplace_back(Try(parseGitDep(dep.first, info)));
         continue;
       } else if (info.contains("system") && info.at("system").as_boolean()) {
-        deps.emplace_back(parseSystemDep(dep.first, info));
+        deps.emplace_back(Try(parseSystemDep(dep.first, info)));
         continue;
       } else if (info.contains("path")) {
-        deps.emplace_back(parsePathDep(dep.first, info));
+        deps.emplace_back(Try(parsePathDep(dep.first, info)));
         continue;
       }
     }
@@ -480,45 +473,32 @@ Manifest::installDeps(const bool includeDevDeps) const {
 }
 
 // Returns an error message if the package name is invalid.
-std::optional<std::string>  // TODO: result-like types make more sense.
+Result<void>
 validatePackageName(const std::string_view name) noexcept {
-  // Empty
-  if (name.empty()) {
-    return "must not be empty";
-  }
+  Ensure(!name.empty(), "package name must not be empty");
+  Ensure(name.size() > 1, "package name must be more than one character");
 
-  // Only one character
-  if (name.size() == 1) {
-    return "must be more than one character";
-  }
-
-  // Only lowercase letters, numbers, dashes, and underscores
   for (const char c : name) {
     if (!std::islower(c) && !std::isdigit(c) && c != '-' && c != '_') {
-      return "must only contain lowercase letters, numbers, dashes, and "
-             "underscores";
+      Bail(
+          "package name must only contain lowercase letters, numbers, dashes, "
+          "and underscores"
+      );
     }
   }
 
-  // Start with a letter
-  if (!std::isalpha(name[0])) {
-    return "must start with a letter";
-  }
+  Ensure(std::isalpha(name[0]), "package name must start with a letter");
+  Ensure(
+      std::isalnum(name[name.size() - 1]),
+      "package name must end with a letter or digit"
+  );
 
-  // End with a letter or digit
-  if (!std::isalnum(name[name.size() - 1])) {
-    return "must end with a letter or digit";
-  }
-
-  // Using C++ keywords
   const std::unordered_set<std::string_view> keywords = {
 #include "Keywords.def"
   };
-  if (keywords.contains(name)) {
-    return "must not be a C++ keyword";
-  }
+  Ensure(!keywords.contains(name), "package name must not be a C++ keyword");
 
-  return std::nullopt;
+  return Ok();
 }
 
 }  // namespace cabin
@@ -533,15 +513,16 @@ using namespace cabin;  // NOLINT(build/namespaces,google-build-using-namespace)
 
 static void
 testValidateDepName() {
-  assertException<CabinError>(
-      [] { validateDepName(""); }, "dependency name is empty"
+  assertEq(
+      validateDepName("").unwrap_err()->what(),
+      "dependency name must not be empty"
   );
-  assertException<CabinError>(
-      [] { validateDepName("-"); },
+  assertEq(
+      validateDepName("-").unwrap_err()->what(),
       "dependency name must start with an alphanumeric character"
   );
-  assertException<CabinError>(
-      [] { validateDepName("1-"); },
+  assertEq(
+      validateDepName("1-").unwrap_err()->what(),
       "dependency name must end with an alphanumeric character or `+`"
   );
 
@@ -549,48 +530,48 @@ testValidateDepName() {
     if (std::isalnum(c) || ALLOWED_CHARS.contains(c)) {
       continue;
     }
-    assertException<CabinError>(
-        [c]() { validateDepName("1" + std::string(1, c) + "1"); },
+    assertEq(
+        validateDepName("1" + std::string(1, c) + "1").unwrap_err()->what(),
         "dependency name must be alphanumeric, `-`, `_`, `/`, `.`, or `+`"
     );
   }
 
-  assertException<CabinError>(
-      [] { validateDepName("1--1"); },
+  assertEq(
+      validateDepName("1--1").unwrap_err()->what(),
       "dependency name must not contain consecutive non-alphanumeric characters"
   );
-  assertNoException([] { validateDepName("1-1-1"); });
+  assertTrue(validateDepName("1-1-1").is_ok());
 
-  assertNoException([] { validateDepName("1.1"); });
-  assertNoException([] { validateDepName("1.1.1"); });
-  assertException<CabinError>(
-      [] { validateDepName("a.a"); },
+  assertTrue(validateDepName("1.1").is_ok());
+  assertTrue(validateDepName("1.1.1").is_ok());
+  assertEq(
+      validateDepName("a.a").unwrap_err()->what(),
       "dependency name must contain `.` wrapped by digits"
   );
 
-  assertNoException([] { validateDepName("a/b"); });
-  assertException<CabinError>(
-      [] { validateDepName("a/b/c"); },
+  assertTrue(validateDepName("a/b").is_ok());
+  assertEq(
+      validateDepName("a/b/c").unwrap_err()->what(),
       "dependency name must not contain more than one `/`"
   );
 
-  assertException<CabinError>(
-      [] { validateDepName("a+"); },
+  assertEq(
+      validateDepName("a+").unwrap_err()->what(),
       "dependency name must contain zero or two `+`"
   );
-  assertException<CabinError>(
-      [] { validateDepName("a+++"); },
+  assertEq(
+      validateDepName("a+++").unwrap_err()->what(),
       "dependency name must contain zero or two `+`"
   );
 
-  assertException<CabinError>(
-      [] { validateDepName("a+b+c"); },
+  assertEq(
+      validateDepName("a+b+c").unwrap_err()->what(),
       "`+` in the dependency name must be consecutive"
   );
 
   // issue #921
-  assertNoException([] { validateDepName("gtkmm-4.0"); });
-  assertNoException([] { validateDepName("ncurses++"); });
+  assertTrue(validateDepName("gtkmm-4.0").is_ok());
+  assertTrue(validateDepName("ncurses++").is_ok());
 
   pass();
 }

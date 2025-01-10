@@ -107,6 +107,11 @@ struct GitDependency {
   const std::optional<std::string> target;
 
   DepMetadata install() const;
+
+  GitDependency(
+      std::string name, std::string url, std::optional<std::string> target
+  )
+      : name(std::move(name)), url(std::move(url)), target(std::move(target)) {}
 };
 
 struct PathDependency {
@@ -114,6 +119,9 @@ struct PathDependency {
   const std::string path;
 
   DepMetadata install() const;
+
+  PathDependency(std::string name, std::string path)
+      : name(std::move(name)), path(std::move(path)) {}
 };
 
 struct SystemDependency {
@@ -121,6 +129,9 @@ struct SystemDependency {
   const VersionReq versionReq;
 
   DepMetadata install() const;
+
+  SystemDependency(std::string name, VersionReq versionReq)
+      : name(std::move(name)), versionReq(std::move(versionReq)) {};
 };
 
 using Dependency =
@@ -159,6 +170,6 @@ private:
 
 Result<fs::path>
 findManifest(fs::path candidateDir = fs::current_path()) noexcept;
-std::optional<std::string> validatePackageName(std::string_view name) noexcept;
+Result<void> validatePackageName(std::string_view name) noexcept;
 
 }  // namespace cabin
