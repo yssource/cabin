@@ -6,9 +6,6 @@
 #include <cstdint>
 #include <fmt/core.h>
 #include <functional>
-#include <iomanip>
-#include <iostream>
-#include <ostream>
 #include <source_location>
 #include <string_view>
 #include <type_traits>
@@ -78,7 +75,7 @@ public:
   static void error(fmt::format_string<Args...> fmt, Args&&... args) noexcept {
     logln(
         Level::Error,
-        [](const std::string_view head) noexcept { return bold(red(head)); },
+        [](const std::string_view head) noexcept { return Bold(Red(head)); },
         "Error: ", fmt, std::forward<Args>(args)...
     );
   }
@@ -86,7 +83,7 @@ public:
   static void warn(fmt::format_string<Args...> fmt, Args&&... args) noexcept {
     logln(
         Level::Warn,
-        [](const std::string_view head) noexcept { return bold(yellow(head)); },
+        [](const std::string_view head) noexcept { return Bold(Yellow(head)); },
         "Warning: ", fmt, std::forward<Args>(args)...
     );
   }
@@ -95,14 +92,14 @@ public:
       const std::string_view header, fmt::format_string<Args...> fmt,
       Args&&... args
   ) noexcept {
-    const int infoHeaderMaxLength = 12;
-    const int infoHeaderEscapeSequenceOffset = 9;
+    constexpr int infoHeaderMaxLength = 12;
+    constexpr int infoHeaderEscapeSequenceOffset = 11;
     logln(
         Level::Info,
         [](const std::string_view head) noexcept {
-          return fmt::format(
-              "{:>{}} ", bold(green(head)),
-              shouldColor()
+          return eformat(
+              "{:>{}} ", Bold(Green(head)),
+              shouldColorStderr()
                   ? infoHeaderMaxLength + infoHeaderEscapeSequenceOffset
                   : infoHeaderMaxLength
           );
@@ -116,7 +113,7 @@ public:
       Args&&... args
   ) noexcept {
     debuglike(
-        Level::Debug, blue("DEBUG"), func, fmt, std::forward<Args>(args)...
+        Level::Debug, Blue("DEBUG"), func, fmt, std::forward<Args>(args)...
     );
   }
   template <typename... Args>
@@ -125,22 +122,22 @@ public:
       Args&&... args
   ) noexcept {
     debuglike(
-        Level::Trace, cyan("TRACE"), func, fmt, std::forward<Args>(args)...
+        Level::Trace, Cyan("TRACE"), func, fmt, std::forward<Args>(args)...
     );
   }
 
 private:
   template <typename... Args>
   static void debuglike(
-      Level level, const std::string_view lvlStr, const std::string_view func,
+      Level level, ColorStr lvl, const std::string_view func,
       fmt::format_string<Args...> fmt, Args&&... args
   ) noexcept {
     logln(
         level,
-        [lvlStr](const std::string_view func) noexcept {
-          return fmt::format(
-              "{}Cabin {} {}{} ", gray("["), lvlStr, prettifyFuncName(func),
-              gray("]")
+        [lvl = std::move(lvl)](const std::string_view func) noexcept {
+          return eformat(
+              "{}Cabin {} {}{} ", Gray("["), std::move(lvl),
+              prettifyFuncName(func), Gray("]")
           );
         },
         func, fmt, std::forward<Args>(args)...
@@ -153,32 +150,36 @@ private:
       fmt::format_string<Args...> fmt, Args&&... args
   ) noexcept {
     loglnImpl(
-        std::cerr, level, std::forward<decltype(processHead)>(processHead),
+        level, std::forward<decltype(processHead)>(processHead),
         std::forward<decltype(head)>(head), fmt, std::forward<Args>(args)...
     );
   }
 
   template <typename... Args>
   static void loglnImpl(
-      std::ostream& os, Level level, HeadProcessor auto&& processHead,
-      auto&& head, fmt::format_string<Args...> fmt, Args&&... args
+      Level level, HeadProcessor auto&& processHead, auto&& head,
+      fmt::format_string<Args...> fmt, Args&&... args
   ) noexcept {
     instance().log(
-        os, level, std::forward<decltype(processHead)>(processHead),
+        level, std::forward<decltype(processHead)>(processHead),
         std::forward<decltype(head)>(head), fmt, std::forward<Args>(args)...
     );
   }
 
   template <typename... Args>
   void
-  log(std::ostream& os, Level level, HeadProcessor auto&& processHead,
-      auto&& head, fmt::format_string<Args...> fmt, Args&&... args) noexcept {
+  log(Level level, HeadProcessor auto&& processHead, auto&& head,
+      fmt::format_string<Args...> fmt, Args&&... args) noexcept {
     if (level <= this->level) {
-      os << std::invoke(
-          std::forward<decltype(processHead)>(processHead),
-          std::forward<decltype(head)>(head)
+      fmt::print(
+          "{}{}\n",
+
+          std::invoke(
+              std::forward<decltype(processHead)>(processHead),
+              std::forward<decltype(head)>(head)
+          ),
+          eformat(fmt, std::forward<Args>(args)...)
       );
-      os << fmt::format(fmt, std::forward<Args>(args)...) << std::endl;
     }
   }
 };

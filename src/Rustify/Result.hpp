@@ -2,7 +2,6 @@
 
 #include <concepts>
 #include <exception>
-#include <fmt/core.h>
 #include <mitama/anyhow/anyhow.hpp>
 #include <mitama/result/result.hpp>
 #include <mitama/thiserror/thiserror.hpp>
