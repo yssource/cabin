@@ -16,6 +16,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -32,14 +33,13 @@ struct VersionToken {
   using enum Kind;
 
   Kind kind;
-  std::variant<std::monostate, uint64_t, std::string_view> value;
+  std::variant<std::monostate, uint64_t, std::string> value;
 
-  constexpr VersionToken(
-      Kind kind,
-      const std::variant<std::monostate, uint64_t, std::string_view>& value
+  VersionToken(
+      const Kind kind, std::variant<std::monostate, uint64_t, std::string> value
   ) noexcept
-      : kind(kind), value(value) {}
-  constexpr explicit VersionToken(Kind kind) noexcept
+      : kind(kind), value(std::move(value)) {}
+  constexpr explicit VersionToken(const Kind kind) noexcept
       : kind(kind), value(std::monostate{}) {}
 
   std::string toString() const noexcept;
