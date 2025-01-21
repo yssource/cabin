@@ -8,6 +8,7 @@
 #include <source_location>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -85,14 +86,17 @@ error(const std::source_location& loc, Display auto&&... msgs) {
       << std::boolalpha;
   (oss << ... << std::forward<decltype(msgs)>(msgs))
       << "', " << loc.file_name() << ':' << loc.line() << '\n';
-  throw std::logic_error(oss.str());
+
+  const std::string str = oss.str();
+  std::cerr << str;
+  throw std::logic_error(str);
 }
 
 inline void
 assertTrue(
     const bool cond, const std::string_view msg = "",
     const std::source_location& loc = std::source_location::current()
-) noexcept {
+) {
   if (cond) {
     return;  // OK
   }
@@ -108,7 +112,7 @@ inline void
 assertFalse(
     const bool cond, const std::string_view msg = "",
     const std::source_location& loc = std::source_location::current()
-) noexcept {
+) {
   if (!cond) {
     return;  // OK
   }
@@ -126,7 +130,7 @@ inline void
 assertEq(
     Lhs&& lhs, Rhs&& rhs, const std::string_view msg = "",
     const std::source_location& loc = std::source_location::current()
-) noexcept {
+) {
   if (lhs == rhs) {
     return;  // OK
   }
@@ -148,7 +152,7 @@ inline void
 assertNe(
     Lhs&& lhs, Rhs&& rhs, const std::string_view msg = "",
     const std::source_location& loc = std::source_location::current()
-) noexcept {
+) {
   if (lhs != rhs) {
     return;  // OK
   }
@@ -170,7 +174,7 @@ inline void
 assertLt(
     Lhs&& lhs, Rhs&& rhs, const std::string_view msg = "",
     const std::source_location& loc = std::source_location::current()
-) noexcept {
+) {
   if (lhs < rhs) {
     return;  // OK
   }
