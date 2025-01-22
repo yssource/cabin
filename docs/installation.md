@@ -1,6 +1,6 @@
 # Installation
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/cabin.svg)](https://repology.org/project/cabin/versions)
+[![Packaging status](https://repology.org/badge/vertical-allrepos/cabin-cpp-package-manager.svg)](https://repology.org/project/cabin-cpp-package-manager/versions)
 
 ## Supported Operating Systems
 
