@@ -3,6 +3,7 @@
 #include "Algos.hpp"
 #include "Cli.hpp"
 #include "Cmd.hpp"
+#include "Logger.hpp"
 #include "Rustify/Result.hpp"
 #include "TermColor.hpp"
 
@@ -12,6 +13,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace cabin {
@@ -120,11 +122,13 @@ colorizeAnyhowError(std::string s) {
   return s;
 }
 
-Result<void, std::string>
-cliMain(const std::span<char* const> args) noexcept {
-  return parseArgs(args).map_err([](const auto& e) {
-    return colorizeAnyhowError(e->what());
-  });
+Result<void, void>
+cliMain(int argc, char* argv[]) noexcept {  // NOLINT(*-avoid-c-arrays)
+  // Drop the first argument (program name)
+  const std::span<char* const> args(argv + 1, argv + argc);
+  return parseArgs(args)
+      .map_err([](const auto& e) { return colorizeAnyhowError(e->what()); })
+      .map_err([](std::string e) { logger::error("{}", std::move(e)); });
 }
 
 }  // namespace cabin
