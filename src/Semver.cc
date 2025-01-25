@@ -211,6 +211,11 @@ Version::toString() const noexcept {
   }
   return str;
 }
+uint64_t
+Version::toNum() const noexcept {
+  // 32 bits for major, 16 bits for minor, and 16 bits for patch
+  return (major << 32) | (minor << 16) | patch;  // NOLINT(*-magic-numbers)
+}
 
 std::ostream&
 operator<<(std::ostream& os, const Version& ver) noexcept {
