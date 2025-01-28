@@ -7,14 +7,8 @@
 #include "Rustify/Result.hpp"
 #include "TermColor.hpp"
 
-#include <cstdlib>
-#include <exception>
-#include <fmt/core.h>
-#include <span>
 #include <string>
-#include <string_view>
 #include <utility>
-#include <vector>
 
 namespace cabin {
 
@@ -27,7 +21,10 @@ getCli() noexcept {
                       .setShort("-v")
                       .setDesc("Use verbose output (-vv very verbose output)")
                       .setGlobal(true))
+          // TODO: assuming -- for long options would be better, also empty
+          // long options should be allowed?
           .addOpt(Opt{ "-vv" }
+                      .setShort("-vv")
                       .setDesc("Use very verbose output")
                       .setGlobal(true)
                       .setHidden(true))
@@ -67,66 +64,20 @@ getCli() noexcept {
   return cli;
 }
 
-static Result<void>
-parseArgs(const std::span<char* const> args) noexcept {
-  // Parse arguments (options should appear before the subcommand, as the help
-  // message shows intuitively)
-  // cabin --verbose run --release help --color always --verbose
-  // ^^^^^^^^^^^^^^ ^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  // [global]       [run]         [help (under run)]
-  for (auto itr = args.begin(); itr != args.end(); ++itr) {
-    // Global options
-    const auto control = Try(Cli::handleGlobalOpts(itr, args.end()));
-    if (control == Cli::Return) {
-      return Ok();
-    } else if (control == Cli::Continue) {
-      continue;
-    }
-    // else: Fallthrough: current argument wasn't handled
-
-    // Local options
-    else if (*itr == "-V"sv || *itr == "--version"sv) {
-      const std::vector<std::string_view> remArgs(itr + 1, args.end());
-      return versionMain(remArgs);
-    } else if (*itr == "--list"sv) {
-      fmt::print("{}", getCli().formatAllSubcmds(true));
-      return Ok();
-    }
-
-    // Subcommands
-    else if (getCli().hasSubcmd(*itr)) {
-      const std::vector<std::string_view> remArgs(itr + 1, args.end());
-      try {
-        return getCli().exec(*itr, remArgs);
-      } catch (const std::exception& e) {
-        Bail(e.what());
-      }
-    }
-
-    // Unexpected argument
-    else {
-      return getCli().noSuchArg(*itr);
-    }
-  }
-
-  return getCli().printHelp({});
-}
-
 static std::string
 colorizeAnyhowError(std::string s) {
-  // `Caused by:` leaves a trailing newline
   if (s.find("Caused by:") != std::string::npos) {
     replaceAll(s, "Caused by:", Yellow("Caused by:").toErrStr());
+    // `Caused by:` leaves a trailing newline, FIXME: upstream this
     replaceAll(s, "\n", "");
   }
   return s;
 }
 
 Result<void, void>
-cliMain(int argc, char* argv[]) noexcept {  // NOLINT(*-avoid-c-arrays)
-  // Drop the first argument (program name)
-  const std::span<char* const> args(argv + 1, argv + argc);
-  return parseArgs(args)
+cabinMain(int argc, char* argv[]) noexcept {  // NOLINT(*-avoid-c-arrays)
+  return getCli()
+      .parseArgs(argc, argv)
       .map_err([](const auto& e) { return colorizeAnyhowError(e->what()); })
       .map_err([](std::string e) { logger::error("{}", std::move(e)); });
 }
