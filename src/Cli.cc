@@ -501,26 +501,30 @@ Cli::expandOpts(const std::span<const char* const> args) const noexcept {
     // "--color=always" => ["--color", "always"]
     else if (arg.starts_with("--")) {
       std::string_view optName = arg;
-      if (const auto pos = arg.find_first_of('=');
-          pos != std::string_view::npos) {
-        optName = arg.substr(0, pos);
+      const auto eqPos = arg.find_first_of('=');
+      if (eqPos != std::string_view::npos) {
+        optName = arg.substr(0, eqPos);
       }
 
       const auto handleLongOpt = [&](const auto opt) -> Result<void> {
         if (opt->takesArg()) {
-          if (const auto pos = arg.find_first_of('=');
-              pos != std::string_view::npos) {
-            // Handle "--color=always" case.
-            expanded.emplace_back(arg.substr(0, pos));
-            expanded.emplace_back(arg.substr(pos + 1));
+          if (eqPos != std::string_view::npos) {
+            if (eqPos + 1 < arg.size()) {
+              // Handle "--color=always" case.
+              expanded.emplace_back(optName);
+              expanded.emplace_back(arg.substr(eqPos + 1));
+            } else {
+              // Handle "--color=" case.
+              return Subcmd::missingOptArgumentFor(optName);
+            }
           } else {
-            // Handle "--color always" case.  Note that the validity of the
-            // value will be checked later.
             if (i + 1 < args.size()) {
+              // Handle "--color always" case.  Note that the validity of the
+              // value will be checked later.
               expanded.emplace_back(arg);
               expanded.emplace_back(args[++i]);
             } else {
-              // Missing argument for the option.
+              // Handle "--color" case.
               return Subcmd::missingOptArgumentFor(arg);
             }
           }
@@ -576,7 +580,7 @@ Cli::expandOpts(const std::span<const char* const> args) const noexcept {
                 expanded.emplace_back(args[++i]);
                 // Break the loop
               } else {
-                // Missing argument for the option.
+                // Handle "-j" case.
                 return Subcmd::missingOptArgumentFor(optName);
               }
             } else {
@@ -825,6 +829,14 @@ testCliExpandOpts() {
     const std::vector<const char*> args{ "build", "--target=this" };
     const std::vector<std::string> expected{ "build", "--target", "this" };
     assertEq(getCli().expandOpts(args).unwrap(), expected);
+  }
+  {
+    const std::vector<const char*> args{ "build", "--target=", "this" };
+    const std::vector<std::string> expected{ "build", "--target=", "this" };
+    assertEq(
+        getCli().expandOpts(args).unwrap_err()->what(),
+        "Missing argument for `--target`"
+    );
   }
   {
     const std::vector<const char*> args{ "build", "--target", "this" };
