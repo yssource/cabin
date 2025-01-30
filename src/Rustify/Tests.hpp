@@ -3,12 +3,12 @@
 #include "Traits.hpp"
 
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
-#include <iostream>
+#include <fmt/core.h>
+#include <fmt/std.h>
 #include <source_location>
-#include <sstream>
 #include <stdexcept>
-#include <string>
 #include <string_view>
 #include <utility>
 
@@ -70,26 +70,23 @@ inline void
 pass(
     const std::source_location& loc = std::source_location::current()
 ) noexcept {
-  std::cout << "        test " << getModName(loc.file_name())
-            << "::" << prettifyFuncName(loc.function_name()) << " ... " << GREEN
-            << "ok" << RESET << '\n'
-            << std::flush;
+  fmt::print(
+      "        test {}::{} ... {}ok{}\n", getModName(loc.file_name()),
+      prettifyFuncName(loc.function_name()), GREEN, RESET
+  );
 }
 
 [[noreturn]] inline void
-error(const std::source_location& loc, Display auto&&... msgs) {
-  std::ostringstream oss;
-  oss << "\n        test " << getModName(loc.file_name())
-      << "::" << prettifyFuncName(loc.function_name()) << " ... " << RED
-      << "FAILED" << RESET << "\n\n"
-      << '\'' << prettifyFuncName(loc.function_name()) << "' failed at '"
-      << std::boolalpha;
-  (oss << ... << std::forward<decltype(msgs)>(msgs))
-      << "', " << loc.file_name() << ':' << loc.line() << '\n';
-
-  const std::string str = oss.str();
-  std::cerr << str;
-  throw std::logic_error(str);
+error(const std::source_location& loc, const std::string_view msg) {
+  fmt::print(
+      stderr,
+      "\n        test {}::{} ... {}FAILED{}\n\n"
+      "'{}' failed at '{}', {}:{}\n",
+      getModName(loc.file_name()), prettifyFuncName(loc.function_name()), RED,
+      RESET, prettifyFuncName(loc.function_name()), msg, loc.file_name(),
+      loc.line()
+  );
+  throw std::logic_error("test failed");
 }
 
 inline void
@@ -125,7 +122,8 @@ assertFalse(
 }
 
 template <typename Lhs, typename Rhs>
-  requires Eq<Lhs, Rhs>
+  requires Eq<Lhs, Rhs> && fmt::is_formattable<Lhs>::value
+           && fmt::is_formattable<Rhs>::value
 inline void
 assertEq(
     Lhs&& lhs, Rhs&& rhs, const std::string_view msg = "",
@@ -136,33 +134,22 @@ assertEq(
   }
 
   if (msg.empty()) {
-    // FIXME: temporary fix. Use fmt::format and fmt::is_formattable.
-    if constexpr (Display<Lhs> && Display<Rhs>) {
-      error(
-          loc, "assertion failed: `(left == right)`\n", "  left: `",
-          std::forward<Lhs>(lhs), "`\n", " right: `", std::forward<Rhs>(rhs),
-          "`\n"
-      );
-    } else if constexpr (Display<Lhs>) {
-      error(
-          loc, "assertion failed: `(left == right)`\n", "  left: `",
-          std::forward<Lhs>(lhs), "`\n", " right: `", "???", "`\n"
-      );
-    } else if constexpr (Display<Rhs>) {
-      error(
-          loc, "assertion failed: `(left == right)`\n", "  left: `", "???",
-          "`\n", " right: `", std::forward<Rhs>(rhs), "`\n"
-      );
-    } else {
-      error(loc, "assertion failed: `(left == right)`");
-    }
+    error(
+        loc, fmt::format(
+                 "assertion failed: `(left == right)`\n"
+                 "  left: `{}`\n"
+                 " right: `{}`\n",
+                 std::forward<Lhs>(lhs), std::forward<Rhs>(rhs)
+             )
+    );
   } else {
     error(loc, msg);
   }
 }
 
 template <typename Lhs, typename Rhs>
-  requires Ne<Lhs, Rhs> && Display<Lhs> && Display<Rhs>
+  requires Ne<Lhs, Rhs> && fmt::is_formattable<Lhs>::value
+           && fmt::is_formattable<Rhs>::value
 inline void
 assertNe(
     Lhs&& lhs, Rhs&& rhs, const std::string_view msg = "",
@@ -174,9 +161,12 @@ assertNe(
 
   if (msg.empty()) {
     error(
-        loc, "assertion failed: `(left != right)`\n", "  left: `",
-        std::forward<Lhs>(lhs), "`\n", " right: `", std::forward<Rhs>(rhs),
-        "`\n"
+        loc, fmt::format(
+                 "assertion failed: `(left != right)`\n"
+                 "  left: `{}`\n"
+                 " right: `{}`\n",
+                 std::forward<Lhs>(lhs), std::forward<Rhs>(rhs)
+             )
     );
   } else {
     error(loc, msg);
@@ -184,7 +174,8 @@ assertNe(
 }
 
 template <typename Lhs, typename Rhs>
-  requires Lt<Lhs, Rhs> && Display<Lhs> && Display<Rhs>
+  requires Lt<Lhs, Rhs> && fmt::is_formattable<Lhs>::value
+           && fmt::is_formattable<Rhs>::value
 inline void
 assertLt(
     Lhs&& lhs, Rhs&& rhs, const std::string_view msg = "",
@@ -196,9 +187,12 @@ assertLt(
 
   if (msg.empty()) {
     error(
-        loc, "assertion failed: `(left < right)`\n", "  left: `",
-        std::forward<Lhs>(lhs), "`\n", " right: `", std::forward<Rhs>(rhs),
-        "`\n"
+        loc, fmt::format(
+                 "assertion failed: `(left < right)`\n"
+                 "  left: `{}`\n"
+                 " right: `{}`\n",
+                 std::forward<Lhs>(lhs), std::forward<Rhs>(rhs)
+             )
     );
   } else {
     error(loc, msg);
