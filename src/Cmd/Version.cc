@@ -7,7 +7,7 @@
 #include "../Rustify/Result.hpp"
 
 #include <cstdlib>
-#include <iostream>
+#include <fmt/format.h>
 #include <string_view>
 
 #ifndef CABIN_CABIN_PKG_VERSION
@@ -50,13 +50,13 @@ const Subcmd VERSION_CMD =  //
 static consteval std::string_view
 commitInfo() noexcept {
   if (sizeof(COMMIT_SHORT_HASH) <= 1 && sizeof(COMMIT_DATE) <= 1) {
-    return "\n";
+    return "";
   } else if (sizeof(COMMIT_SHORT_HASH) <= 1) {
-    return " (" COMMIT_DATE ")\n";
+    return " (" COMMIT_DATE ")";
   } else if (sizeof(COMMIT_DATE) <= 1) {
-    return " (" COMMIT_SHORT_HASH ")\n";
+    return " (" COMMIT_SHORT_HASH ")";
   } else {
-    return " (" COMMIT_SHORT_HASH " " COMMIT_DATE ")\n";
+    return " (" COMMIT_SHORT_HASH " " COMMIT_DATE ")";
   }
 }
 
@@ -147,18 +147,19 @@ versionMain(const CliArgsView args) noexcept {
     return VERSION_CMD.noSuchArg(arg);
   }
 
-  std::cout << "cabin " CABIN_CABIN_PKG_VERSION << commitInfo();
+  fmt::print("cabin {}{}\n", CABIN_CABIN_PKG_VERSION, commitInfo());
   if (isVerbose()) {
-    std::cout << "release: " CABIN_CABIN_PKG_VERSION
-                 "\n"
-                 "commit-hash: " COMMIT_HASH
-                 "\n"
-                 "commit-date: " COMMIT_DATE
-                 "\n"
-                 "compiler: " COMPILER_VERSION "\n"
-              << "compile-date: " << COMPILE_DATE << '\n'
-              << "libgit2: " << git2::Version() << '\n'
-              << "libcurl: " << curl::Version() << '\n';
+    fmt::print(
+        "release: {}\n"
+        "commit-hash: {}\n"
+        "commit-date: {}\n"
+        "compiler: {}\n"
+        "compile-date: {}\n"
+        "libgit2: {}\n"
+        "libcurl: {}\n",
+        CABIN_CABIN_PKG_VERSION, COMMIT_HASH, COMMIT_DATE, COMPILER_VERSION,
+        COMPILE_DATE, git2::Version(), curl::Version()
+    );
   }
 
   return Ok();
