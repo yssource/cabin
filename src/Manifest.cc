@@ -40,9 +40,6 @@ static const fs::path GIT_SRC_DIR(GIT_DIR / "src");
 static const std::unordered_set<char> ALLOWED_CHARS = {
   '-', '_', '/', '.', '+'  // allowed in the dependency name
 };
-static const std::unordered_set<std::string_view> KEYWORDS = {
-#include "Keywords.def"
-};
 
 Result<Edition>
 Edition::tryFromString(std::string str) noexcept {
@@ -227,8 +224,8 @@ static Result<std::unordered_map<std::string, Profile>>
 parseProfiles(const toml::value& val) noexcept {
   std::unordered_map<std::string, Profile> profiles;
   const BaseProfile baseProfile = Try(parseBaseProfile(val));
-  profiles.insert({ "dev", Try(parseDevProfile(val, baseProfile)) });
-  profiles.insert({ "release", Try(parseReleaseProfile(val, baseProfile)) });
+  profiles.emplace("dev", Try(parseDevProfile(val, baseProfile)));
+  profiles.emplace("release", Try(parseReleaseProfile(val, baseProfile)));
   return Ok(profiles);
 }
 
@@ -550,7 +547,11 @@ validatePackageName(const std::string_view name) noexcept {
       std::isalnum(name[name.size() - 1]),
       "package name must end with a letter or digit"
   );
-  Ensure(!KEYWORDS.contains(name), "package name must not be a C++ keyword");
+
+  static const std::unordered_set<std::string_view> keywords = {
+#include "Keywords.def"
+  };
+  Ensure(!keywords.contains(name), "package name must not be a C++ keyword");
 
   return Ok();
 }
@@ -560,6 +561,7 @@ validatePackageName(const std::string_view name) noexcept {
 #ifdef CABIN_TEST
 
 #  include "Rustify/Tests.hpp"
+#  include "TermColor.hpp"
 
 #  include <climits>
 #  include <fmt/ranges.h>
@@ -1076,6 +1078,8 @@ testValidateDepName() {
 
 int
 main() {
+  cabin::setColorMode("never");
+
   tests::testEditionTryFromString();
   tests::testEditionComparison();
   tests::testPackageTryFromToml();
