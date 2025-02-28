@@ -83,7 +83,7 @@ try_find(const toml::value& v, const U&... u) noexcept {
     }
 
     if (what.back() == '\n') {
-      what.pop_back();  // remove the last '\n' since logger::error adds one.
+      what.pop_back();  // remove the last '\n' since Diag::error adds one.
     }
     return Err(anyhow::anyhow(what));
   }

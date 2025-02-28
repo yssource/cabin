@@ -74,7 +74,7 @@ colorizeAnyhowError(std::string s) {
     replaceAll(s, "Caused by:", Yellow("Caused by:").toErrStr());
   }
   if (s.back() == '\n') {
-    s.pop_back();  // remove the last '\n' since logger::error adds one.
+    s.pop_back();  // remove the last '\n' since Diag::error adds one.
   }
   return s;
 }
