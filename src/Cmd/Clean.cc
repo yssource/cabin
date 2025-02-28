@@ -1,7 +1,7 @@
 #include "Clean.hpp"
 
 #include "../Cli.hpp"
-#include "../Logger.hpp"
+#include "../Diag.hpp"
 #include "../Manifest.hpp"
 #include "../Rustify/Result.hpp"
 
@@ -53,7 +53,7 @@ cleanMain(CliArgsView args) noexcept {
   }
 
   if (fs::exists(outDir)) {
-    logger::info("Removing", "{}", fs::canonical(outDir).string());
+    Diag::info("Removing", "{}", fs::canonical(outDir).string());
     fs::remove_all(outDir);
   }
   return Ok();

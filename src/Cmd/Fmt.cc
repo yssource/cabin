@@ -3,15 +3,16 @@
 #include "../Algos.hpp"
 #include "../BuildConfig.hpp"
 #include "../Cli.hpp"
+#include "../Diag.hpp"
 #include "../Git2/Exception.hpp"
 #include "../Git2/Repository.hpp"
-#include "../Logger.hpp"
 #include "../Manifest.hpp"
 #include "../Rustify/Result.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,7 +42,7 @@ collectFormatTargets(
     repo.open(manifestDir.string());
     hasGitRepo = true;
   } catch (const git2::Exception& e) {
-    logger::debug("No git repository found");
+    spdlog::debug("No git repository found");
   }
 
   const auto isExcluded = [&](std::string_view path) -> bool {
@@ -62,7 +63,7 @@ collectFormatTargets(
       const std::string path =
           fs::relative(entry->path(), manifestDir).string();
       if ((hasGitRepo && repo.isIgnored(path)) || isExcluded(path)) {
-        logger::debug("Ignore: {}", path);
+        spdlog::debug("Ignore: {}", path);
         entry.disable_recursion_pending();
         continue;
       }
@@ -70,7 +71,7 @@ collectFormatTargets(
       const fs::path path = fs::relative(entry->path(), manifestDir);
       if ((hasGitRepo && repo.isIgnored(path.string()))
           || isExcluded(path.string())) {
-        logger::debug("Ignore: {}", path.string());
+        spdlog::debug("Ignore: {}", path.string());
         continue;
       }
 
@@ -126,7 +127,7 @@ fmtMain(const CliArgsView args) {
   const std::vector<std::string> sources =
       collectFormatTargets(projectPath, excludes);
   if (sources.empty()) {
-    logger::warn("no files to format");
+    Diag::warn("no files to format");
     return Ok();
   }
 
@@ -137,7 +138,7 @@ fmtMain(const CliArgsView args) {
     clangFormatArgs.emplace_back("--dry-run");
   } else {
     clangFormatArgs.emplace_back("-i");
-    logger::info("Formatting", "{}", manifest.package.name);
+    Diag::info("Formatting", "{}", manifest.package.name);
   }
   clangFormatArgs.insert(clangFormatArgs.end(), sources.begin(), sources.end());
 

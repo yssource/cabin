@@ -2,8 +2,8 @@
 
 #include "../Cli.hpp"
 #include "../CurlVersion.hpp"
+#include "../Diag.hpp"
 #include "../Git2/Version.hpp"
-#include "../Logger.hpp"
 #include "../Rustify/Result.hpp"
 
 #include <cstdlib>

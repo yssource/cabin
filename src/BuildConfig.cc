@@ -3,8 +3,8 @@
 #include "Algos.hpp"
 #include "Command.hpp"
 #include "Compiler.hpp"
+#include "Diag.hpp"
 #include "Git2.hpp"
-#include "Logger.hpp"
 #include "Manifest.hpp"
 #include "Parallelism.hpp"
 #include "Semver.hpp"
@@ -23,6 +23,7 @@
 #include <ostream>
 #include <queue>
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -447,7 +448,7 @@ BuildConfig::containsTestCode(const std::string& sourceFile) const {
       // file.
       const bool containsTest = src != testSrc;
       if (containsTest) {
-        logger::trace("Found test code: {}", sourceFile);
+        spdlog::trace("Found test code: {}", sourceFile);
       }
       return Ok(containsTest);
     }
@@ -622,7 +623,7 @@ BuildConfig::setVariables() {
     commitShortHash = commitHash.substr(0, git2::SHORT_HASH_LEN);
     commitDate = git2::Commit().lookup(repo, oid).time().toString();
   } catch (const git2::Exception& e) {
-    logger::trace("No git repository found");
+    spdlog::trace("No git repository found");
   }
 
   // Variables Cabin sets for the user.
@@ -883,7 +884,7 @@ BuildConfig::configureBuild() {
   std::string srcs;
   for (const fs::path& sourceFilePath : sourceFilePaths) {
     if (sourceFilePath != mainSource && isMainSource(sourceFilePath)) {
-      logger::warn(
+      Diag::warn(
           "source file `{}` is named `main` but is not located directly in the "
           "`src/` directory. "
           "This file will not be treated as the program's entry point. "
@@ -891,7 +892,7 @@ BuildConfig::configureBuild() {
           sourceFilePath.string()
       );
     } else if (sourceFilePath != libSource && isLibSource(sourceFilePath)) {
-      logger::warn(
+      Diag::warn(
           "source file `{}` is named `lib` but is not located directly in the "
           "`src/` directory. "
           "This file will not be treated as a hasLibraryTarget. "
@@ -982,16 +983,16 @@ emitMakefile(
   bool buildProj = false;
   bool buildCompDb = false;
   if (config.makefileIsUpToDate()) {
-    logger::debug("Makefile is up to date");
+    spdlog::debug("Makefile is up to date");
   } else {
-    logger::debug("Makefile is NOT up to date");
+    spdlog::debug("Makefile is NOT up to date");
     buildProj = true;
   }
   if (profile.compDb) {
     if (config.compdbIsUpToDate()) {
-      logger::debug("compile_commands.json is up to date");
+      spdlog::debug("compile_commands.json is up to date");
     } else {
-      logger::debug("compile_commands.json is NOT up to date");
+      spdlog::debug("compile_commands.json is NOT up to date");
       buildCompDb = true;
     }
   }
@@ -1024,10 +1025,10 @@ emitCompdb(
   Try(config.installDeps(includeDevDeps));
 
   if (config.compdbIsUpToDate()) {
-    logger::debug("compile_commands.json is up to date");
+    spdlog::debug("compile_commands.json is up to date");
     return Ok(config.outBasePath);
   }
-  logger::debug("compile_commands.json is NOT up to date");
+  spdlog::debug("compile_commands.json is NOT up to date");
 
   Try(config.configureBuild());
   std::ofstream ofs(config.outBasePath / "compile_commands.json");

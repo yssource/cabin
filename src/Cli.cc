@@ -1,7 +1,7 @@
 #include "Cli.hpp"
 
 #include "Algos.hpp"
-#include "Logger.hpp"
+#include "Diag.hpp"
 #include "Rustify/Result.hpp"
 #include "TermColor.hpp"
 
@@ -387,13 +387,13 @@ Cli::handleGlobalOpts(
       return getCli().printHelp({}).map([] { return Return; });
     }
   } else if (arg == "-v" || arg == "--verbose") {
-    logger::setLevel(logger::Level::Debug);
+    setDiagLevel(DiagLevel::Verbose);
     return Ok(Continue);
   } else if (arg == "-vv") {
-    logger::setLevel(logger::Level::Trace);
+    setDiagLevel(DiagLevel::VeryVerbose);
     return Ok(Continue);
   } else if (arg == "-q" || arg == "--quiet") {
-    logger::setLevel(logger::Level::Off);
+    setDiagLevel(DiagLevel::Off);
     return Ok(Continue);
   } else if (arg == "--color") {
     Ensure(itr + 1 < end, "missing argument for `--color`");

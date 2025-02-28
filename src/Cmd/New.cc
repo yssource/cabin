@@ -2,14 +2,15 @@
 
 #include "../Algos.hpp"
 #include "../Cli.hpp"
+#include "../Diag.hpp"
 #include "../Git2.hpp"
-#include "../Logger.hpp"
 #include "../Manifest.hpp"
 #include "../Rustify/Result.hpp"
 #include "Common.hpp"
 
 #include <cstdlib>
 #include <fstream>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <string_view>
 
@@ -40,7 +41,7 @@ getAuthor() noexcept {
     return config.getString("user.name") + " <" + config.getString("user.email")
            + ">";
   } catch (const git2::Exception& e) {
-    logger::debug("{}", e.what());
+    spdlog::debug("{}", e.what());
     return "";
   }
 }
@@ -105,7 +106,7 @@ createTemplateFiles(const bool isBin, const std::string_view projectName) {
     Try(writeToFile(ofs, projectName / fs::path(".gitignore"), "/cabin-out"));
     Try(writeToFile(ofs, projectName / fs::path("src") / "main.cc", MAIN_CC));
 
-    logger::info("Created", "binary (application) `{}` package", projectName);
+    Diag::info("Created", "binary (application) `{}` package", projectName);
   } else {
     fs::create_directories(projectName / fs::path("include") / projectName);
     Try(writeToFile(
@@ -121,7 +122,7 @@ createTemplateFiles(const bool isBin, const std::string_view projectName) {
         getHeader(projectName)
     ));
 
-    logger::info("Created", "library `{}` package", projectName);
+    Diag::info("Created", "library `{}` package", projectName);
   }
   return Ok();
 }

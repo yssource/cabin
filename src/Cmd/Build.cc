@@ -4,7 +4,7 @@
 #include "../BuildConfig.hpp"
 #include "../Cli.hpp"
 #include "../Command.hpp"
-#include "../Logger.hpp"
+#include "../Diag.hpp"
 #include "../Manifest.hpp"
 #include "../Parallelism.hpp"
 #include "Common.hpp"
@@ -49,7 +49,7 @@ runBuildCommand(
   ExitStatus exitStatus = Try(execCmd(checkUpToDateCmd));
   if (!exitStatus.success()) {
     // If `targetName` is not up-to-date, compile it.
-    logger::info(
+    Diag::info(
         "Compiling", "{} v{} ({})", targetName,
         manifest.package.version.toString(),
         manifest.path.parent_path().string()
@@ -85,7 +85,7 @@ buildImpl(const Manifest& manifest, std::string& outDir, const bool isDebug) {
     const Profile& profile =
         isDebug ? manifest.profiles.at("dev") : manifest.profiles.at("release");
 
-    logger::info(
+    Diag::info(
         "Finished", "`{}` profile [{}] target(s) in {:.2f}s",
         modeToProfile(isDebug), profile.toString(), elapsed.count()
     );
@@ -141,7 +141,7 @@ buildMain(const CliArgsView args) {
   // Build compilation database
   const std::string outDir =
       Try(emitCompdb(manifest, isDebug, /*includeDevDeps=*/false));
-  logger::info("Generated", "{}/compile_commands.json", outDir);
+  Diag::info("Generated", "{}/compile_commands.json", outDir);
   return Ok();
 }
 

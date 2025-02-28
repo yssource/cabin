@@ -3,11 +3,12 @@
 #include "Algos.hpp"
 #include "Command.hpp"
 #include "Compiler.hpp"
+#include "Diag.hpp"
 #include "Git2.hpp"
-#include "Logger.hpp"
 
 #include <cstdlib>
 #include <filesystem>
+#include <spdlog/spdlog.h>
 #include <string>
 
 namespace cabin {
@@ -35,7 +36,7 @@ GitDependency::install() const {
   }
 
   if (fs::exists(installDir) && !fs::is_empty(installDir)) {
-    logger::debug("{} is already installed", name);
+    spdlog::debug("{} is already installed", name);
   } else {
     git2::Repository repo;
     repo.clone(url, installDir.string());
@@ -48,7 +49,7 @@ GitDependency::install() const {
       repo.checkoutHead(true);
     }
 
-    logger::info(
+    Diag::info(
         "Downloaded", "{} {}", name, target.has_value() ? target.value() : url
     );
   }
@@ -74,7 +75,7 @@ Result<CompilerOptions>
 PathDependency::install() const {
   const fs::path installDir = fs::weakly_canonical(path);
   if (fs::exists(installDir) && !fs::is_empty(installDir)) {
-    logger::debug("{} is already installed", name);
+    spdlog::debug("{} is already installed", name);
   } else {
     Bail("{} can't be accessible as directory", installDir.string());
   }

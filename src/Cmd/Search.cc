@@ -1,7 +1,7 @@
 #include "Search.hpp"
 
 #include "../Cli.hpp"
-#include "../Logger.hpp"
+#include "../Diag.hpp"
 #include "../Rustify/Result.hpp"
 
 #include <cstddef>
@@ -60,7 +60,7 @@ searchPackages(const SearchArgs& args) {
 
   CURL* curl = curl_easy_init();
   if (!curl) {
-    logger::error("curl_easy_init() failed");
+    Diag::error("curl_easy_init() failed");
     return EXIT_FAILURE;
   }
 
@@ -124,7 +124,7 @@ searchMain(const CliArgsView args) {
 
   const nlohmann::json packages = searchPackages(searchArgs);
   if (packages.empty()) {
-    logger::warn("no packages found");
+    Diag::warn("no packages found");
     return Ok();
   }
 

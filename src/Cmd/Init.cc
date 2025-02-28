@@ -1,7 +1,7 @@
 #include "Init.hpp"
 
 #include "../Cli.hpp"
-#include "../Logger.hpp"
+#include "../Diag.hpp"
 #include "../Manifest.hpp"
 #include "../Rustify/Result.hpp"
 #include "Common.hpp"
@@ -54,7 +54,7 @@ initMain(const CliArgsView args) {
   std::ofstream ofs("cabin.toml");
   ofs << createCabinToml(packageName);
 
-  logger::info(
+  Diag::info(
       "Created", "{} `{}` package", isBin ? "binary (application)" : "library",
       packageName
   );

@@ -1,7 +1,7 @@
 #include "Remove.hpp"
 
 #include "../Cli.hpp"
-#include "../Logger.hpp"
+#include "../Diag.hpp"
 #include "../Manifest.hpp"
 #include "../Rustify/Result.hpp"
 
@@ -44,16 +44,14 @@ removeMain(const CliArgsView args) {
     } else {
       // manifestPath needs to be converted to string
       // or it adds extra quotes around the path
-      logger::warn(
-          "Dependency `{}` not found in {}", dep, manifestPath.string()
-      );
+      Diag::warn("Dependency `{}` not found in {}", dep, manifestPath.string());
     }
   }
 
   if (!removedDeps.empty()) {
     std::ofstream out(manifestPath);
     out << data;
-    logger::info(
+    Diag::info(
         "Removed", "{} from {}", fmt::join(removedDeps, ", "),
         manifestPath.string()
     );

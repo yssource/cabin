@@ -3,7 +3,7 @@
 #include "../Algos.hpp"
 #include "../Cli.hpp"
 #include "../Command.hpp"
-#include "../Logger.hpp"
+#include "../Diag.hpp"
 #include "../Manifest.hpp"
 #include "../Parallelism.hpp"
 #include "../Rustify/Result.hpp"
@@ -83,7 +83,7 @@ runMain(const CliArgsView args) {
   std::string outDir;
   Try(buildImpl(manifest, outDir, isDebug));
 
-  logger::info(
+  Diag::info(
       "Running", "`{}/{}`",
       fs::relative(outDir, manifest.path.parent_path()).string(),
       manifest.package.name

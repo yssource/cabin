@@ -1,6 +1,6 @@
 #include "TermColor.hpp"
 
-#include "Logger.hpp"
+#include "Diag.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -24,7 +24,7 @@ getColorMode(const std::string_view str) noexcept {
   } else if (str == "never") {
     return ColorMode::Never;
   } else {
-    logger::warn("unknown color mode `{}`; falling back to auto", str);
+    Diag::warn("unknown color mode `{}`; falling back to auto", str);
     return ColorMode::Auto;
   }
 }
