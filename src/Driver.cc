@@ -1,4 +1,4 @@
-#include "Cabin.hpp"
+#include "Driver.hpp"
 
 #include "Algos.hpp"
 #include "Cli.hpp"
@@ -14,6 +14,16 @@
 #include <utility>
 
 namespace cabin {
+
+#if SPDLOG_VERSION > 11500
+#  define LOG_ENV "CABIN_LOG"  // NOLINT
+static constexpr const char* LOG_ENV_USED = LOG_ENV;
+static constexpr const char* LOG_ENV_UNUSED = "SPDLOG_LEVEL";
+#else
+#  define LOG_ENV  // NOLINT
+static constexpr const char* LOG_ENV_USED = "SPDLOG_LEVEL";
+static constexpr const char* LOG_ENV_UNUSED = "CABIN_LOG";
+#endif
 
 const Cli&
 getCli() noexcept {
@@ -93,28 +103,15 @@ colorizeAnyhowError(std::string s) {
   return s;
 }
 
-static void
-warnUnusedLogEnv() {
-#if SPDLOG_VERSION > 11500
-  if (std::getenv("SPDLOG_LEVEL")) {
-    Diag::warn("SPDLOG_LEVEL is set but not used. Use CABIN_LOG instead.");
-  }
-#else
-  if (std::getenv("CABIN_LOG")) {
-    Diag::warn("CABIN_LOG is set but not used. Use SPDLOG_LEVEL instead.");
-  }
-#endif
-}
-
 Result<void, void>
-cabinMain(int argc, char* argv[]) noexcept {  // NOLINT(*-avoid-c-arrays)
+run(int argc, char* argv[]) noexcept {  // NOLINT(*-avoid-c-arrays)
   // Set up logger
-  spdlog::cfg::load_env_levels(
-#if SPDLOG_VERSION > 11500
-      "CABIN_LOG"
-#endif
-  );
-  warnUnusedLogEnv();
+  spdlog::cfg::load_env_levels(LOG_ENV);
+  if (std::getenv(LOG_ENV_UNUSED)) {
+    Diag::warn(
+        "{} is set but not used. Use {} instead.", LOG_ENV_UNUSED, LOG_ENV_USED
+    );
+  }
 
   return getCli()
       .parseArgs(argc, argv)
